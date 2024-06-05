@@ -30,9 +30,10 @@ for ((NUM=2; NUM<=$(wc -l < $META); NUM++))
 do 
     METAPATH=.tmp/tmp_meta_$(echo $((NUM-1))).txt
     sed -n "1p;${NUM}p" $META > ${METAPATH} 
+    name=$(sed -n "${NUM}p" $META | cut -f1)
     # wrap sbatch in another bash because sbatch exits shell immediately after job submission
-    SNAKE_CMD="snakemake --nolock -T -p -j 10 -s Snakefile.py --config RULE_GROUP='single' META=${METAPATH}"
-    bash -c "sbatch --parsable -p sfgf,wjg,biochem -n 8 -t 24:00:00 -o ./log/slurm-%j.out --mem-per-cpu 64g --wrap \"${CONTAINER} ${SNAKE_CMD}\" >> .tmp/tmp_joblist.txt"
+    SNAKE_CMD="snakemake --rerun-incomplete --nolock -T -p -j 10 -s Snakefile.py --config RULE_GROUP='single' META=${METAPATH}"
+    bash -c "sbatch --parsable -p sfgf,wjg,biochem -n 8 -t 24:00:00 --job-name=${name} -o ./log/slurm-%j-${name}.out --mem-per-cpu 64g --wrap \"${CONTAINER} ${SNAKE_CMD}\" >> .tmp/tmp_joblist.txt"
 done
 echo "Submitted single analysis jobs:"
 cat .tmp/tmp_joblist.txt
@@ -40,4 +41,4 @@ cat .tmp/tmp_joblist.txt
 ##### 4. GROUP
 #	after all single-sample jobs are completed, run group analysis tasks
 SNAKE_CMD_GROUP="snakemake -T -p -j 10 -s Snakefile.py --config RULE_GROUP='group' META=${META}"
-sbatch --dependency=afterok:$(cat .tmp/tmp_joblist.txt|tr '\n' ',' | sed 's/,$/\n/') -p sfgf,wjg,biochem -n 8 -t 24:00:00 -o ./log/slurm-%j.out --mem-per-cpu 64g --wrap "${CONTAINER} '${SNAKE_CMD_GROUP}'"
+sbatch --dependency=afterok:$(cat .tmp/tmp_joblist.txt|tr '\n' ',' | sed 's/,$/\n/') -p sfgf,wjg,biochem -n 8 -t 24:00:00 -o ./log/slurm-%j-group.out --job-name=snake_group --mem-per-cpu 64g --wrap "${CONTAINER} '${SNAKE_CMD_GROUP}'"
