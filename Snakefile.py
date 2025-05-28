@@ -175,7 +175,7 @@ rule run_bowtie:
         right ="output/fastqs/trimmed/{sample_label}_R2_trimmed.fastq.gz",
     output:
         bam = "output/bams/unprocessed/{sample_label}.bam",
-        idx = "output/bams/unprocessed/{sample_label}.bam.bai"
+        idx = "output/bams/unprocessed/{sample_label}.bam.csi"
     params:
         error_out_file = "error_files/{sample_label}_bowtie",
         run_time = "4:59:00",
@@ -186,7 +186,7 @@ rule run_bowtie:
     threads: 8
     shell:  # -X 2000 # prevents mates separated by a lot
         "bowtie2 -X 2000 --threads {threads} --rg-id {wildcards.sample_label} --rg 'SM:{wildcards.sample_label}' -x " + REFERENCE_FILE + " -1 {input.left} -2 {input.right} | samtools view -b -S - | samtools sort -o output/bams/unprocessed/{wildcards.sample_label}.bam -; "
-        "samtools index output/bams/unprocessed/{wildcards.sample_label}.bam; "
+        "samtools index -c output/bams/unprocessed/{wildcards.sample_label}.bam; "
 
 rule estimate_library_complexity:
     input:
@@ -281,7 +281,7 @@ rule rm_mito: # chokes on sam file with weird headers
         idx = rules.run_bowtie.output.idx
     output:
         bam = "output/bams/noMT/{sample_label}.noMT.bam",
-        idx = "output/bams/noMT/{sample_label}.noMT.bam.bai"
+        idx = "output/bams/noMT/{sample_label}.noMT.bam.csi"
     params:
         error_out_file = "error_files/{sample_label}_remove_mitochondrial_reads",
         run_time = "00:30:00",
@@ -291,7 +291,7 @@ rule rm_mito: # chokes on sam file with weird headers
     threads: 1
     shell: 
         "samtools idxstats {input.bam} | cut -f 1 | grep -v chrM | xargs samtools view -b {input.bam} > {output.bam}; " # something like this
-        "samtools index {output.bam}"
+        "samtools index -c {output.bam}"
 
 rule filter_bams:
     input: 
@@ -326,7 +326,7 @@ rule rm_duplicates_picard:
         bam = rules.filter_bams.output.bam,
     output:
         bam = "output/bams/deduped/{sample_label}.noMT.filtered.deduped.bam",
-        idx = "output/bams/deduped/{sample_label}.noMT.filtered.deduped.bam.bai",
+        idx = "output/bams/deduped/{sample_label}.noMT.filtered.deduped.bam.csi",
         raw_metrics = "output/picard/duplicates/raw/picard_dedup_metrics_{sample_label}.txt",
         parsed_metrics = "output/picard/duplicates/parsed/picard_dedup_metrics_{sample_label}.parsed.txt", 
     params:
@@ -339,7 +339,7 @@ rule rm_duplicates_picard:
     threads: 1
     shell:  # -Xms4g # this seems to get the process killed... # WE CAN INCLUDE READ_NAME INFO if we have illumina reads...
         "java -XX:ParallelGCThreads=3 -jar " + PICARD_JAR + " MarkDuplicates INPUT={input.bam} OUTPUT={output.bam} METRICS_FILE={output.raw_metrics} REMOVE_DUPLICATES=true VALIDATION_STRINGENCY=LENIENT READ_NAME_REGEX=null; "
-        "samtools index {output.bam}; " # and index
+        "samtools index -c {output.bam}; " # and index
         "grep -A 1 ESTIMATED_LIBRARY_SIZE {output.raw_metrics} | tail -1 | cut -f 9-10 | xargs echo {wildcards.sample_label} | tr ' ' $'\t' > {output.parsed_metrics};"
 
 rule count_bam_reads:
@@ -368,7 +368,7 @@ rule merge_bam_files:
         expand("bams/deduped/{sample_label}.noMT.filtered.deduped.bam", sample_label=sample_labels)
     output:
         bam = "bams/merged/merged.noMT.filtered.deduped.bam",
-        idx = "bams/merged/merged.noMT.filtered.deduped.bam.bai"
+        idx = "bams/merged/merged.noMT.filtered.deduped.bam.csi"
     params:
         error_out_file="error_files/merge_bams",
         run_time="00:30:00",
@@ -379,7 +379,7 @@ rule merge_bam_files:
     threads: 8
     shell: 
         "samtools merge -r -l 2 -@ {threads} {output.bam} {input};"
-        "samtools index {output.bam}"
+        "samtools index -c {output.bam}"
 
 #awk 'BEGIN {command = "paste "} FILENAME != previous {command = command  "<(cut -f " NF " FILENAME ")"; previous=FILENAME }' output/beds/{sample_label}.insertions.bed.gz
 #ls output/beds/WT-3h_S14_L001.insertions.bed.gz output/beds/Mz-3h_S10_L001.insertions.bed.gz output/beds/Kz-3h_S8_L001.insertions.bed.gz  | while read line; do echo -n "<(cut -f 11 " $line ") "; done
