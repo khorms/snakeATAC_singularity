@@ -266,7 +266,7 @@ rule plot_idxstats:
         """
         samtools idxstats {input.bam} > {wildcards.sample_label}_idxstats.txt;
         samtools view -b {input.bam} | bedtools intersect -a stdin -b {input.mito_bed} | samtools view -c - > {wildcards.sample_label}_mito_count.txt;
-        /usr/local/anaconda/envs/py27/bin/Rscript --vanilla -e 'library(ggplot2); data <- read.table("{wildcards.sample_label}_idxstats.txt", header=FALSE); mito_count <- as.numeric(readLines("{wildcards.sample_label}_mito_count.txt")); data$V4[data$V1 == "chrM"] <- mito_count; p <- ggplot(data, aes(x=V1, y=V4)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + labs(x="Chromosome", y="Number of reads"); ggsave("{output.plot}", p, width=10, height=6);'
+        /usr/local/anaconda/envs/py27/bin/Rscript --vanilla -e 'library(ggplot2); data <- read.table("{wildcards.sample_label}_idxstats.txt", header=FALSE); mito_count <- as.numeric(readLines("{wildcards.sample_label}_mito_count.txt")); data$V4[data$V1 %in% read.table("{input.mito_bed}", header=FALSE)$V1] <- mito_count; p <- ggplot(data, aes(x=V1, y=V4)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + labs(x="Chromosome", y="Number of reads"); ggsave("{output.plot}", p, width=10, height=6);'
         """
 
 # From JB nature paper: Reads mapping to the mitochondria, unmapped contigs and chromosome Y were removed and not considered
