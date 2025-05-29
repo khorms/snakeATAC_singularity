@@ -253,45 +253,40 @@ rule plot_flagstats:
 
 rule plot_idxstats:
     input:
-        expand("output/bams/qc/idxstats/{sample_label}.idxstats.txt", sample_label=sample_labels)
+        bam = rules.rm_mito.output.bam,
+        mito_bed = config["MITO_BED"]
     output:
-        qc_table = "output/bams/qc/compiled_idxstats.txt",
-        mito_table = "output/bams/qc/compiled_idxstats.mito_fraction.txt",
-        qc_pdf = "output/plots/qc/counts/compiled_idxstats.counts.pdf",
-        mito_pdf = "output/plots/qc/compiled_idxstats.mito.pdf",
+        plot = "output/plots/{sample_label}_idxstats.pdf"
     params:
-        error_out_file="error_files/idxstats_plot",
-        run_time="00:10:00",
-        cores="1",
-        memory="1000",
-        job_name="plot_idxstats"
-    shell: 
-        "awk 'BEGIN {{OFS = \"\\t\"; print \"sample_label\",\"chr\",\"ref_length\",\"mapped\",\"unmapped\"}} {{totals[$1] += $4}} $2 == \"chrM\" {{mito[$1] += $4}} {{print}} \
-            END {{print \"sample_label\",\"total_reads\",\"mito_reads\",\"mito_percent\" > \"{output.mito_table}\"; for(s in totals) {{print s,totals[s],mito[s],mito[s]/totals[s] * 100 > \"{output.mito_table}\"}} }}' {input} > {output.qc_table};"
-        "/usr/local/anaconda/envs/py27/bin/" + "Rscript --vanilla " + ATAC_TOOLS + "/qc_bargraph.R {output.mito_table} sample_label mito_percent {output.mito_pdf};"
-        "/usr/local/anaconda/envs/py27/bin/" + "Rscript --vanilla " + ATAC_TOOLS + "/qc_bargraph.R {output.mito_table} sample_label total_reads {output.qc_pdf};"
+        cores = "1",
+        memory = "4000",
+        job_name = "plot_idxstats"
+    threads: 1
+    shell:
+        """
+        samtools idxstats {input.bam} > {wildcards.sample_label}_idxstats.txt;
+        samtools view -b {input.bam} | bedtools intersect -a stdin -b {input.mito_bed} | samtools view -c - > {wildcards.sample_label}_mito_count.txt;
+        /usr/local/anaconda/envs/py27/bin/Rscript --vanilla -e 'library(ggplot2); data <- read.table("{wildcards.sample_label}_idxstats.txt", header=FALSE); mito_count <- as.numeric(readLines("{wildcards.sample_label}_mito_count.txt")); data$V4[data$V1 == "chrM"] <- mito_count; p <- ggplot(data, aes(x=V1, y=V4)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + labs(x="Chromosome", y="Number of reads"); ggsave("{output.plot}", p, width=10, height=6);'
+        """
 
 # From JB nature paper: Reads mapping to the mitochondria, unmapped contigs and chromosome Y were removed and not considered
 # so remove the extra stuff...
 # consider another call to filter out mitochondrial reads?
 # see this http://www.nature.com/ng/journal/vaop/ncurrent/full/ng.3646.html#methods
-rule rm_mito: # chokes on sam file with weird headers
+rule rm_mito:
     input:
         bam = rules.run_bowtie.output.bam,
-        idx = rules.run_bowtie.output.idx
+        idx = rules.run_bowtie.output.idx,
+        mito_bed = config["MITO_BED"]
     output:
-        bam = "output/bams/noMT/{sample_label}.noMT.bam",
-        idx = "output/bams/noMT/{sample_label}.noMT.bam.csi"
+        bam = "output/bams/noMT/{sample_label}.noMT.bam"
     params:
-        error_out_file = "error_files/{sample_label}_remove_mitochondrial_reads",
-        run_time = "00:30:00",
         cores = "1",
         memory = "4000",
         job_name = "rm_mt_reads"
     threads: 1
-    shell: 
-        "samtools idxstats {input.bam} | cut -f 1 | grep -v chrM | xargs samtools view -b {input.bam} > {output.bam}; " # something like this
-        "samtools index -c {output.bam}"
+    shell:
+        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam}"
 
 rule filter_bams:
     input: 

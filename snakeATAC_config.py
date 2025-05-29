@@ -26,6 +26,7 @@ CHROM_SIZES = '/home/groups/wjg/lab/genomes/gSizes/%s.all.genomsize' % (SPECIES_
 GENOME_SIZE_DICT = {"mm9": 1.87e9, "sacCer3": 1.2e7, "hg19": 2.7e9, "hg38": 3.0e9}
 EFFECTIVE_GENOME_SIZE = GENOME_SIZE_DICT[SPECIES_GENOME]
 BLACKLIST = "/oak/stanford/groups/wjg/share/resources/%s/%s.blacklist.bed" % (SPECIES_GENOME, SPECIES_GENOME) 
+MITO_BED = "/oak/stanford/groups/wjg/share/resources/%s/%s.mito.bed" % (SPECIES_GENOME, SPECIES_GENOME)
 ################## End User Inputs ###############
 
 # Adding paths to useful tools for running snakeATAC 
