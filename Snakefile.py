@@ -264,7 +264,7 @@ rule rm_mito:
         job_name = "rm_mt_reads"
     threads: 1
     shell:
-        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam} && "
+        "bedtools intersect -v -a {input.bam} -b {input.mito_bed} | samtools view -bS - > {output.bam} && "
         "samtools index -c {output.bam}"
 
 rule plot_idxstats:
