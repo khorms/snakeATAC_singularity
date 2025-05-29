@@ -255,7 +255,7 @@ rule rm_mito:
     input:
         bam = rules.run_bowtie.output.bam,
         idx = rules.run_bowtie.output.idx,
-        mito_bed = config["MITO_BED"]
+        mito_bed = MITO_BED
     output:
         bam = "output/bams/noMT/{sample_label}.noMT.bam"
     params:
@@ -269,7 +269,7 @@ rule rm_mito:
 rule plot_idxstats:
     input:
         bam = rules.rm_mito.output.bam,
-        mito_bed = config["MITO_BED"]
+        mito_bed = MITO_BED
     output:
         plot = "output/plots/{sample_label}_idxstats.pdf"
     params:
