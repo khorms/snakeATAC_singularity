@@ -257,14 +257,16 @@ rule rm_mito:
         idx = rules.run_bowtie.output.idx,
         mito_bed = MITO_BED
     output:
-        bam = "output/bams/noMT/{sample_label}.noMT.bam"
+        bam = "output/bams/noMT/{sample_label}.noMT.bam",
+        idx = "output/bams/noMT/{sample_label}.noMT.bam.csi"
     params:
         cores = "1",
         memory = "4000",
         job_name = "rm_mt_reads"
     threads: 1
     shell:
-        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam}"
+        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam} && "
+        "samtools index -c {output.bam}"
 
 rule plot_idxstats:
     input:
