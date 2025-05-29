@@ -32,7 +32,6 @@ rule_group_dict = {
         "output/plots/qc/sample_correlation_plot.pdf",
         "output/bams/qc/compiled_flagstats.txt",
         "output/bams/qc/compiled_counts.txt",
-        "output/plots/qc/compiled_idxstats.mito.pdf",
         "output/bams/qc/compiled_picard.dedup_metrics.txt",
         "output/peaks/all_samples/all_sample_peaks.narrowPeak.bed",
         "output/beds/qc/all_samples.nuc_matrix.txt",
