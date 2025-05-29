@@ -251,6 +251,21 @@ rule plot_flagstats:
         "awk 'BEGIN {{OFS = \"\\t\"; print \"sample_label\",\"total\",\"secondary\",\"supplementary\",\"duplicates\",\"mapped\",\"paired\",\"read1\",\"read2\",\"proper_pair\",\"both_mapped\",\"singletons\",\"separate_chr\",\"separate_chr_mapq_above5\"}} FNR == 1 && NR != 1 {{print \"\"}} FNR == 1 {{printf $1}} {{printf \"\\t\" $2 }} END {{print \"\"}} ' {input} > {output.table};"
         "/usr/local/anaconda/envs/py27/bin/" + "Rscript --vanilla " + ATAC_TOOLS + "/qc_boxplot.R {output.table} read_count {output.pdf}"
 
+rule rm_mito:
+    input:
+        bam = rules.run_bowtie.output.bam,
+        idx = rules.run_bowtie.output.idx,
+        mito_bed = config["MITO_BED"]
+    output:
+        bam = "output/bams/noMT/{sample_label}.noMT.bam"
+    params:
+        cores = "1",
+        memory = "4000",
+        job_name = "rm_mt_reads"
+    threads: 1
+    shell:
+        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam}"
+
 rule plot_idxstats:
     input:
         bam = rules.rm_mito.output.bam,
@@ -273,20 +288,7 @@ rule plot_idxstats:
 # so remove the extra stuff...
 # consider another call to filter out mitochondrial reads?
 # see this http://www.nature.com/ng/journal/vaop/ncurrent/full/ng.3646.html#methods
-rule rm_mito:
-    input:
-        bam = rules.run_bowtie.output.bam,
-        idx = rules.run_bowtie.output.idx,
-        mito_bed = config["MITO_BED"]
-    output:
-        bam = "output/bams/noMT/{sample_label}.noMT.bam"
-    params:
-        cores = "1",
-        memory = "4000",
-        job_name = "rm_mt_reads"
-    threads: 1
-    shell:
-        "samtools view -h {input.bam} | bedtools intersect -v -a stdin -b {input.mito_bed} | samtools view -bS - > {output.bam}"
+
 
 rule filter_bams:
     input: 
