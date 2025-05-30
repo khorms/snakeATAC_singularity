@@ -185,8 +185,8 @@ rule run_bowtie:
     threads: 8
     shell:  # -X 2000 # prevents mates separated by a lot
 #        "bowtie2 -X 2000 --threads {threads} --rg-id {wildcards.sample_label} --rg 'SM:{wildcards.sample_label}' -x " + REFERENCE_FILE + " -1 {input.left} -2 {input.right} | samtools view -b -S - | samtools sort -o output/bams/unprocessed/{wildcards.sample_label}.bam -; "
-        "bowtie2 -X 2000 --score-min L,0,-1.0 --mp 2,1 --threads {threads} --rg-id {wildcards.sample_label} --rg 'SM:{wildcards.sample_label}' -x " + REFERENCE_FILE + " -1 {input.left} -2 {input.right} | samtools view -b -S - | samtools sort -o output/bams/unprocessed/{wildcards.sample_label}.bam -; "
-# not doing local! it fucks up the --score-min structure
+#        "bowtie2 -X 2000 --score-min L,0,-1.0 --mp 2,1 --threads {threads} --rg-id {wildcards.sample_label} --rg 'SM:{wildcards.sample_label}' -x " + REFERENCE_FILE + " -1 {input.left} -2 {input.right} | samtools view -b -S - | samtools sort -o output/bams/unprocessed/{wildcards.sample_label}.bam -; "
+        "bowtie2 -X 2000 --local --score-min G,1,5 --ma 2 --mp 2,1 --threads {threads} --rg-id {wildcards.sample_label} --rg 'SM:{wildcards.sample_label}' -x " + REFERENCE_FILE + " -1 {input.left} -2 {input.right} | samtools view -b -S - | samtools sort -o output/bams/unprocessed/{wildcards.sample_label}.bam -; "
         "samtools index -c output/bams/unprocessed/{wildcards.sample_label}.bam; "
 
 rule estimate_library_complexity:
